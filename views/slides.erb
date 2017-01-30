@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Arc90 University | BackboneJS 101</title>
+    <link rel="stylesheet" href="/css/lib/fathom.sample.css">
+    <link rel="stylesheet" href="/css/lib/ir_black.css">
+    <link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css'>
+    <script src="/js/lib/jquery-1.7.2.min.js"></script>
+    <script src="/js/lib/fathom.min.js"></script>
+    <script src="/js/lib/jquery.noisy.min.js"></script>
+    <script src="/js/lib/highlight.pack.js"></script>
+    <script src="/js/lib/underscore-min.js"></script>
+    <script src="/js/lib/backbone-min.js"></script>
+</head>
+<body>
+
+<div id="presentation">
+
+    <div id="title" class="slide">
+        <div>
+            <img src="/img/backbone-300x300.png" alt="">
+            <h2>Backbone.js</h2>
+        </div>
+        <h3>A gentle introduction to a JavaScript library</h3>
+        <h4>≈</h4>
+        <h1>Arc90 University | May 24<sub>th</sup>, 2012</h1>
+        <img src="/img/arc90_logo.png" width="118" height="46" alt="arc90" id="arc90-logo">
+    </div>
+
+
+    <div class="slide breaker">
+        <h1>What is Backbone.js?</h1>
+        <h3><a href="http://documentcloud.github.com/backbone/">http://documentcloud.github.com/backbone/</a></h3>
+    </div>
+
+    <div class="slide list">
+        <h1>What is Backbone.js?</h1>
+        <ul>
+            <li>Backbone provides a way to structure and organize your code, separating responsibilities in to easily recognizable pieces.</li>
+            <li>It is very flexible, pick and choose what parts you want. It is a <strong>library</strong>, not a framework.</li>
+            <li>It is very light <em>(5.6kb, Packed &amp; gzipped)</em>.</li>
+            <li>It <strong>requires</strong> jQuery || Zepto as well as Underscore.js</li>
+            <li>You have to do some hacks to make it play nice with Require.js <em>(more on this later)</em>.</li>
+            <li>Get a second opinion on Herding Code : <a href="http://herdingcode.com/?p=390">http://herdingcode.com/?p=390</a>
+        </ul>
+    </div>
+
+    <div class="slide iframe">
+        <h1>
+            We're going to look at a simple photo app backed by a local server &amp; DB.<br />
+            <span>Fork it on GitHub: <a href="https://github.com/DarrenN/backbone-demo">https://github.com/DarrenN/backbone-demo</a><span>
+        </h1>
+        <iframe src="http://127.0.0.1:4567"></iframe>
+    </div>
+
+    <div class="slide breaker">
+        <h1>Enough Talk.<br />Let's see some code.</h1>
+        <h3>(We'll take a quick tour of the basics first)</h3>
+    </div>
+
+    <div class="slide code">
+        <h1>Models</h1>
+        <p>Lets make a simple model to store our a photo</p>
+
+        <pre class="runnable">
+            <code class="javascript">
+// The app uses a set of photos taken from my Instagram feed via Statigram,
+// hence the namespace
+var Statigram = {};
+
+// Define a Model
+Statigram.Photo = Backbone.Model.extend({
+    initialize : function() {
+        log(this.id);
+    }
+});
+
+// Create a new Photo model with an id = 1
+var photo = new Statigram.Photo({ id : 1 });
+            </code>
+        </pre>
+    </div>
+
+    <div class="slide code">
+        <h1>Models</h1>
+        <p>Now let's sync the model to the server and retrieve the record for Photo.id = 1</p>
+
+        <pre class="runnable">
+            <code class="javascript">
+var Statigram = {};
+
+Statigram.Photo = Backbone.Model.extend({
+
+    // Set a base URL for the model to hit. Backbone will create the url:
+    // Request: GET http://127.0.0.1:4567/photo/1
+    urlRoot : 'photo',
+
+    initialize : function() {
+        // fetch() uses Backbone.Sync to hit the server and
+        // load the model with the returned JSON
+        this.fetch({
+            success : function(model, response) {
+                // Use get() to grab model attributes
+                log(model.get('title') + ' : ' + model.get('link'));
+            }
+        });
+    }
+});
+
+var photo = new Statigram.Photo({ id : 1 });
+            </code>
+        </pre>
+    </div>
+
+        <div class="slide code">
+        <h1>Models</h1>
+        <p>Now let's make a change and persist it to the DB</p>
+
+        <pre class="runnable">
+            <code class="javascript">
+var Statigram = {};
+
+Statigram.Photo = Backbone.Model.extend({
+    urlRoot : 'photo',
+
+    initialize : function() {
+        // After saving a sync event is fired to get the model up to date
+        // so we'll watch for that event and act on it
+        this.on("sync", function(model, response){
+            log(model.get('title'));
+        })
+    }
+});
+
+var photo = new Statigram.Photo({ id : 1 });
+photo.save({'title' : 'Jo Bob'});
+            </code>
+        </pre>
+    </div>
+
+    <div class="slide code">
+        <h1>Collections</h1>
+        <p>Manage a bunch of models using Underscore.js and other goodness</p>
+
+        <pre class="runnable">
+            <code class="javascript">
+var Statigram = {};
+Statigram.Photo = Backbone.Model.extend({}); // Model
+
+// Make a Collection object
+Statigram.Photos = Backbone.Collection.extend({
+    url   : '/photos',
+    model : Statigram.Photo // Explicitly tell it what model to use
+});
+
+// Create a collections and add some models
+var photos = new Statigram.Photos();
+photos.add([
+    { id : 1 },
+    { id : 2 },
+    { id : 3 }
+]);
+log([photos.length, JSON.stringify(photos)]);
+            </code>
+        </pre>
+    </div>
+
+    <div class="slide code">
+        <h1>Collections</h1>
+        <p>Use fetch() to populate a Collection from the server. In this case we'll get the whole DB back (12 rows) loaded into models.</p>
+
+        <pre class="runnable">
+            <code class="javascript">
+var Statigram = {};
+Statigram.Photo = Backbone.Model.extend({}); // Model
+
+// Make a Collection object
+Statigram.Photos = Backbone.Collection.extend({
+    url   : '/photos',
+    model : Statigram.Photo // Explicitly tell it what model to use
+});
+
+// Create a collections and add some models
+var photos = new Statigram.Photos();
+photos.fetch({
+    success : function() {
+        // Notice .pluck() - a nice bit of Underscore.js to help manage models
+        log([photos.length, JSON.stringify(photos.pluck('title'))]);
+    }
+});
+            </code>
+        </pre>
+    </div>
+
+    <div class="slide code">
+        <h1>Collections: Manipulation</h1>
+        <p>Like pluck() there are a bunch of available functions you can use to operate on and iterate over your collection of models <em>(map(), reduce(), shuffle(), etc&hellip;)</em></p>
+
+        <pre class="runnable">
+            <code class="javascript">
+var Statigram = {};
+Statigram.Photo = Backbone.Model.extend({});
+Statigram.Photos = Backbone.Collection.extend({ url   : '/photos', model : Statigram.Photo  });
+var photos = new Statigram.Photos();
+photos.fetch({
+    success : function() {
+        // Iterate the collection with .each()
+        photos.each(function(model){ log(' Id: ' + model.id) });
+
+        log([
+            // Get a model from collection by Id
+            photos.get(3).get('title'),
+
+            // Get models that meet a criteria and return array
+            photos.where({title : 'Kawaii'})[0].get('title'),
+
+            // Pop - pop last model off stack and return it
+            photos.pop().get('title')
+            ]);
+    }
+});
+            </code>
+        </pre>
+    </div>
+
+    <div class="slide code">
+        <h1>Views</h1>
+        <p>Now that we have data, we need to display it in a meaningful manner. Views will auto-assemble DOM elements for you based on the information you give it.</p>
+
+        <pre class="runnable">
+            <code class="javascript">
+var Statigram = {};
+Statigram.PhotoView = Backbone.View.extend({
+    tagName   : 'li', // We want to make list elements
+    className : 'photo_view', // we would like this className
+    render    : function() {
+        // The view generates `this.el` out of the tagName & className to make:
+        // &lt;li class="photo_view"&gt;&lt;/li&gt;
+        //
+        // $el - this is `this.el` wrapped in jQuery
+        this.$el.html('A list element of stirling reputation.');
+        log(this.el);
+    }
+});
+var photo_view = new Statigram.PhotoView();
+photo_view.render();
+            </code>
+        </pre>
+    </div>
+
+    <div class="slide code">
+        <h1>Views</h1>
+        <p>Use your collection and models to load data into your views.</p>
+
+        <ul id="test_list" class="test_list"></ul>
+        <pre class="runnable half">
+            <code class="javascript">
+var Statigram = {};
+Statigram.Photo = Backbone.Model.extend({
+    initialize : function() {
+        this.view = new Statigram.PhotoView({ model : this, id : this.id });
+        this.view.render();
+    }
+});
+Statigram.Photos = Backbone.Collection.extend({
+    url : '/photos', model : Statigram.Photo
+});
+Statigram.PhotoView = Backbone.View.extend({
+    tagName   : 'li',
+    className : 'photoview',
+    render    : function() {
+        $('#test_list').append(this.$el.text(this.options.model.get('title')));
+    }
+});
+photos = new Statigram.Photos();
+photos.fetch(); // Load models from server and render
+            </code>
+        </pre>
+    </div>
+
+    <div class="slide code">
+        <h1>Views</h1>
+        <p>Attach events to your views to keep your code organized.</p>
+
+        <ul id="test_list2" class="test_list"></ul>
+        <pre class="runnable half">
+            <code class="javascript">
+var Statigram = {};
+Statigram.Photo = Backbone.Model.extend({
+    initialize : function() {
+        this.view = new Statigram.PhotoView({ model : this, id : this.id });
+        this.view.render();
+    }
+});
+Statigram.Photos = Backbone.Collection.extend({ url : '/photos', model : Statigram.Photo });
+Statigram.PhotoView = Backbone.View.extend({
+    tagName   : 'li',
+    className : 'photoview',
+    render    : function() { $('#test_list2').append(this.$el.html(this.options.model.get('title'))); },
+    events    : {
+        "click" : "red"
+    },
+    red : function(e) {
+        this.$el.css({ color : '#f00' });
+        log(" ID:" + this.$el.attr('id'));
+    }
+});
+photos = new Statigram.Photos();
+photos.fetch(); // Load models from server and render
+            </code>
+        </pre>
+    </div>
+
+    <div class="slide breaker">
+        <h1>Hopefully that <br />made sense.</h1>
+        <h3>Now lets look at the app</h3>
+    </div>
+
+</div>
+<script>
+    $(document).ready(function(){
+
+        // Kick off Fathom.js slideshow
+        $("#presentation").fathom({
+            scrollLength : 300,
+            margin : 200
+        });
+
+        // Add some noise to the background
+        $('body').noisy({
+            intensity: 1,
+            size: 200,
+            opacity: 0.08,
+            monochrome: false
+        });
+
+        // Attach a button and .log element to every code block.
+        // Clicking the button will eval() and run the JS contents.
+        var x = 0;
+        $('.runnable').each(function() {
+            var code = $(this).find('code');
+            var button = '<div class="run" title="Run"><button>Run Code</button><div id="log' + x + '" class="log"></div></div>';
+            $(button).insertAfter($(this)).bind('click', function(){
+              eval(code.text());
+            });
+            x++;
+        });
+
+        // Kick off syntax highlighing
+        hljs.tabReplace = '    ';
+        hljs.initHighlightingOnLoad();
+
+        // Post message to the .log element in the active slide
+        var log = function(msg) {
+            if (typeof msg === 'object') {
+                if (msg.constructor.toString().indexOf("Array") !== -1) {
+                    msg = msg.join(", ");
+                }
+            }
+            $('.activeslide').find('.log').append(msg);
+        }
+
+    });
+</script>
+</body>
+</html>
